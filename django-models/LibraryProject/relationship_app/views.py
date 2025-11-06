@@ -4,5 +4,5 @@ from .models import Library
 # Class-based view
 class LibraryDetailView(DetailView):
     model = Library
-    template_name = 'library_detail.html'
-    context_object_name = 'library'
+    template_name = 'relationship_app'
+    context_object_name = 'list_books.html', 'Book.objects.all()'
