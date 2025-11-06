@@ -14,6 +14,6 @@ urlpatterns = [
     
      # Authentication URL patterns
     path('register/', views.register_view, name='register'),
-    path('login/', views.login_view, name='login'),
-    path('logout/', views.logout_view, name='logout'),
+    path('login/', views.LoginView.as_view(template_name="login")),
+    path('logout/', views.LogoutView.as_view(template_name="logout")),
 ]
