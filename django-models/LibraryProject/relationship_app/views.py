@@ -20,3 +20,8 @@ class LibraryDetailView(DetailView):
     
     def get_queryset(self):
         return Library.objects.prefetch_related('books__author')
+    
+class UserCreationForm(request):
+    model = UserCreationForm
+    template_name = 'relationship_app/register.html'
+    
