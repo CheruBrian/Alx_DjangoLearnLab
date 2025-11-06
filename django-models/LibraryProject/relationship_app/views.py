@@ -22,6 +22,6 @@ class LibraryDetailView(DetailView):
         return Library.objects.prefetch_related('books__author')
     
 class UserCreationForm(request):
-    model = UserCreationForm
+    model = UserCreationForm()
     template_name = 'relationship_app/register.html'
     
