@@ -85,9 +85,10 @@ def is_member(user):
 
 
 # Admin view
-@user_passes_test(is_admin)
-def admin_view( ):
+@user_passes_test(is_admin, login_url=None, raise_exception=True)
+def admin_view(request):
     return render(request, 'admin_view.html')
+
 
 
 # Librarian view
