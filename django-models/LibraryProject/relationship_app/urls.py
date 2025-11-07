@@ -11,8 +11,8 @@ urlpatterns = [
     # Function-based view URL pattern
     path('books/', views.list_books, name='list_books'),
     
-    path('books/add/', views.add_book, name='add_book'),
-    path('books/edit/<int:book_id>/', views.edit_book, name='edit_book'),
+    path('books/add/', views.add_book, name='add_book/'),
+    path('books/edit/<int:book_id>/', views.edit_book, name='edit_book/'),
     path('books/delete/<int:book_id>/', views.delete_book, name='delete_book'),
     
     # Class-based view URL pattern
