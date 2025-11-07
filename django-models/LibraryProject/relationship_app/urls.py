@@ -25,4 +25,6 @@ urlpatterns = [
     path('admin-view/', views.admin_view, name='Admin_view'),
     path('librarian-view/', views.librarian_view, name='librarian_view'),
     path('member-view/', views.member_view, name='member_view'),
+    path('admin/', admin.site.urls),
+    path('', include('relationship_app.urls')),
 ]
