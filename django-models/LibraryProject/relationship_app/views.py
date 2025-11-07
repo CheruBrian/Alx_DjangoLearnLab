@@ -86,7 +86,7 @@ def is_member(user):
 
 # Admin view
 @user_passes_test(is_admin)
-def admin_view(request):
+def admin_view( ):
     return render(request, 'admin_view.html')
 
 
