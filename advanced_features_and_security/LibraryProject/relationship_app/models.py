@@ -41,18 +41,12 @@ class Librarian(models.Model):
 
     def __str__(self):
         return self.name
-
 class UserProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-
-     return f"{self.user.username} - {self.role}"
-
-    user = models.OneToOneField(user, on_delete=models.CASCADE)
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='Member')
+    role = models.CharField(max_length=20, choices=ROLE.CHOICES, default='Member')
 
     def __str__(self):
         return f"{self.user.username} - {self.role}"
-
 
 # --- Automatically create UserProfile when a new User is created ---
 @receiver(post_save, sender=User)
