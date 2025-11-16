@@ -1,4 +1,3 @@
-
 """
 Django settings for LibraryProject project.
 
@@ -40,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'bookshelf',
     'relationship_app',
+    'app.apps.AppConfig',
 ]
 
 MIDDLEWARE = [
