@@ -1,3 +1,4 @@
+
 """
 Django settings for LibraryProject project.
 
@@ -20,7 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-13!ce_ep-1i$n)i5$dcbpm^$s(f#yzuur2b@4t#c#kq2t9-2to'
+SECRET_KEY = 'django-insecure-#352usg+jgjdo2c-^f#-k0h5dqkywq*2=jb%pd_mdc0aurpxk7'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -37,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'bookshelf',
     'relationship_app',
 ]
 
@@ -121,3 +123,7 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/relationship/login/'
+LOGIN_URL = '/relationship/login/'
