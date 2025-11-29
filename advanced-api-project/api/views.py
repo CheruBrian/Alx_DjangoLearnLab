@@ -15,6 +15,21 @@ class BookListView(generics.ListAPIView):
     serializer_class = BookSerializer
     permission_classes = [permissions.AllowAny]
 
+ filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+
+    # 1. FILTERING
+    filterset_fields = ['title', 'author', 'publication_year']
+
+    # 2. SEARCHING
+    search_fields = ['title', 'author__name']
+
+    # 3. ORDERING
+    ordering_fields = ['title', 'publication_year']
+    ordering = ['title']  # default order (optional)
 
 # DETAIL VIEW — anyone can read
 class BookDetailView(generics.RetrieveAPIView):
