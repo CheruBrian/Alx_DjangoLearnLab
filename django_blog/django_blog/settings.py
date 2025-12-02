@@ -123,8 +123,15 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
-    BASE_DIR / "static",
+    BASE_DIR / "blog/static",
 ]
+
+# Redirects after login/logout
+LOGIN_REDIRECT_URL = "home"    # name of a url in your project; change if needed
+LOGOUT_REDIRECT_URL = "home"
+
+# Optional: where Django will send emails (e.g., password reset). For dev:
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 
 # Default primary key field type
