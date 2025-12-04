@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Django Blog</title>
+  <link rel="stylesheet" href="{% static 'blog/styles.css' %}">
+</head>
+<body>
+    {% extends "blog/base.html" %}
+{% block content %}
+  <div class="max-w-xl mx-auto bg-white p-6 rounded shadow">
+    <h1 class="text-xl font-bold mb-4">Delete Post</h1>
+    <p>Are you sure you want to delete "<strong>{{ object.title }}</strong>"?</p>
+
+    <form method="post" class="mt-4">
+      {% csrf_token %}
+      <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded">Yes, Delete</button>
+      <a href="{% url 'post-detail' object.pk %}" class="ml-3 text-gray-600">Cancel</a>
+    </form>
+  </div>
+{% endblock %}
+</body>
