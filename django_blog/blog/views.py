@@ -17,6 +17,10 @@ from django.contrib.auth.decorators import login_required
 from django.views.generic.edit import FormMixin
 from django.urls import reverse_lazy
 from .models import Post, Comment
+from django.db.models import Q
+from django.contrib.postgres.search import (
+    SearchVector, SearchQuery, SearchRank, TrigramSimilarity
+)
 from .forms import PostForm, CommentForm, CommentUpdateForm
 
 def home(request):
@@ -72,7 +76,29 @@ class PostListView(ListView):
     model = Post
     template_name = "blog/post_list.html"
     context_object_name = "posts"
-    paginate_by = 10  # optional
+    paginate_by = 10  
+    
+    def get_queryset(self):
+        queryset = Post.objects.all().prefetch_related('tags', 'author')
+        
+        # Filter by tag if provided
+        tag_slug = self.request.GET.get('tag')
+        if tag_slug:
+            tag = get_object_or_404(Tag, slug=tag_slug)
+            queryset = queryset.filter(tags__in=[tag])
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['tag'] = self.request.GET.get('tag')
+        
+        # Get popular tags
+        context['popular_tags'] = Tag.objects.annotate(
+            num_posts=Count('taggit_taggeditem_items')
+        ).order_by('-num_posts')[:10]
+        
+        return context# optional
 
 class PostDetailView(DetailView):
     model = Post
@@ -229,3 +255,28 @@ def comment_reply(request, pk):
         'parent_comment': parent_comment,
         'post': post
     })
+    
+class PostAdvancedSearchView(PostSearchView):
+    def get_queryset(self):
+        form = SearchForm(self.request.GET)
+        if not form.is_valid():
+            return Post.objects.filter()
+        
+        q = form.cleaned_data.get('q', '')
+        
+        if not q:
+            return Post.objects.all().order_by('-created_at')
+        
+        # PostgreSQL full-text search (requires PostgreSQL database)
+        search_vector = SearchVector('title', weight='A') + \
+                       SearchVector('content', weight='B')
+        search_query = SearchQuery(q)
+        
+        queryset = Post.objects.annotate(
+            search=search_vector,
+            rank=SearchRank(search_vector, search_query)
+        ).filter(
+            search=search_query
+        ).order_by('-rank')
+        
+        return queryset
