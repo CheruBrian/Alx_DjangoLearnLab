@@ -2,21 +2,364 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Django Blog</title>
-    <link rel="stylesheet" href="{% static 'blog/styles.css' %}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Django Blog{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <!-- Bootstrap Tags Input CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-tagsinput/0.8.0/bootstrap-tagsinput.css">
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            padding-top: 56px;
+        }
+        
+        .navbar {
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        
+        .search-container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        /* Tag Styles */
+        .tag {
+            display: inline-block;
+            padding: 0.25em 0.5em;
+            margin: 0.2em;
+            background-color: #e9ecef;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            color: #495057;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        
+        .tag:hover {
+            background-color: #dee2e6;
+            color: #212529;
+            text-decoration: none;
+        }
+        
+        .tag-cloud {
+            line-height: 2;
+            text-align: center;
+        }
+        
+        .tag-cloud .tag {
+            margin: 0.3em;
+        }
+        
+        .tag-size-1 { font-size: 0.8em; }
+        .tag-size-2 { font-size: 0.9em; }
+        .tag-size-3 { font-size: 1em; }
+        .tag-size-4 { font-size: 1.1em; }
+        .tag-size-5 { font-size: 1.2em; }
+        
+        .tag-size-1:hover { transform: scale(1.05); }
+        .tag-size-2:hover { transform: scale(1.1); }
+        .tag-size-3:hover { transform: scale(1.15); }
+        .tag-size-4:hover { transform: scale(1.2); }
+        .tag-size-5:hover { transform: scale(1.25); }
+        
+        /* Post Card Styles */
+        .post-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid #dee2e6;
+        }
+        
+        .post-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,.1);
+        }
+        
+        /* Search Results */
+        .search-highlight {
+            background-color: #fff3cd;
+            padding: 0.1em 0.2em;
+            border-radius: 0.2em;
+        }
+        
+        /* Bootstrap Tags Input Override */
+        .bootstrap-tagsinput {
+            width: 100%;
+            min-height: 38px;
+            padding: 0.375rem 0.75rem;
+        }
+        
+        .bootstrap-tagsinput .tag {
+            margin-right: 2px;
+            color: white;
+            background: var(--primary-color);
+            padding: 0.2em 0.6em;
+            border-radius: 0.25rem;
+        }
+    </style>
 </head>
 <body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'post-list' %}">
+                <i class="bi bi-journal-text"></i> Django Blog
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'post-list' %}">
+                            <i class="bi bi-house"></i> Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'tag-cloud' %}">
+                            <i class="bi bi-tags"></i> Tags
+                        </a>
+                    </li>
+                    {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'post-create' %}">
+                                <i class="bi bi-plus-circle"></i> New Post
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+                
+                <!-- Search Form -->
+                <form class="d-flex search-container" action="{% url 'post-search' %}" method="GET">
+                    <div class="input-group">
+                        <input type="text" 
+                               class="form-control" 
+                               name="q" 
+                               placeholder="Search posts..." 
+                               value="{{ request.GET.q }}"
+                               aria-label="Search">
+                        <button class="btn btn-outline-light" type="submit">
+                            <i class="bi bi-search"></i>
+                        </button>
+                        <a href="{% url 'post-search' %}" class="btn btn-outline-light" 
+                           data-bs-toggle="collapse" 
+                           data-bs-target="#advancedSearch"
+                           title="Advanced Search">
+                            <i class="bi bi-sliders"></i>
+                        </a>
+                    </div>
+                </form>
+                
+                <!-- User Menu -->
+                <ul class="navbar-nav ms-3">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" 
+                               role="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-person-circle"></i> {{ user.username }}
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'post-create' %}">
+                                        <i class="bi bi-plus-circle"></i> New Post
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'logout' %}">
+                                        <i class="bi bi-box-arrow-right"></i> Logout
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'login' %}">
+                                <i class="bi bi-box-arrow-in-right"></i> Login
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'register' %}">
+                                <i class="bi bi-person-plus"></i> Register
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
 
-    <header>
-        <h1>Django Blog</h1>
-        <hr>
-    </header>
+    <!-- Advanced Search Collapse -->
+    <div class="collapse" id="advancedSearch">
+        <div class="container py-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Advanced Search</h5>
+                    <form action="{% url 'post-search' %}" method="GET">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Keywords</label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       name="q" 
+                                       value="{{ request.GET.q }}"
+                                       placeholder="Enter search terms...">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Tags (comma separated)</label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       name="tags" 
+                                       value="{{ request.GET.tags }}"
+                                       placeholder="e.g., django, python, web">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Search In</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="search_in" 
+                                           value="title" id="searchTitle" checked>
+                                    <label class="form-check-label" for="searchTitle">Title</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="search_in" 
+                                           value="content" id="searchContent" checked>
+                                    <label class="form-check-label" for="searchContent">Content</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="search_in" 
+                                           value="tags" id="searchTags" checked>
+                                    <label class="form-check-label" for="searchTags">Tags</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="search_in" 
+                                           value="author" id="searchAuthor">
+                                    <label class="form-check-label" for="searchAuthor">Author</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Sort By</label>
+                                <select class="form-select" name="sort_by">
+                                    <option value="relevance">Relevance</option>
+                                    <option value="newest">Newest First</option>
+                                    <option value="oldest">Oldest First</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-search"></i> Search
+                                </button>
+                                <a href="{% url 'post-search' %}" class="btn btn-secondary">Clear</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <main>
-        {% block content %}
-        {% endblock %}
+    <main class="container py-4">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        {% block content %}{% endblock %}
     </main>
 
-    <script src="{% static 'blog/script.js' %}"></script>
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <h5>Django Blog</h5>
+                    <p>A feature-rich blog platform built with Django.</p>
+                </div>
+                <div class="col-md-4">
+                    <h5>Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="{% url 'post-list' %}" class="text-white-50">Home</a></li>
+                        <li><a href="{% url 'tag-cloud' %}" class="text-white-50">Tag Cloud</a></li>
+                        {% if user.is_authenticated %}
+                            <li><a href="{% url 'post-create' %}" class="text-white-50">Create Post</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5>Popular Tags</h5>
+                    <div class="tag-cloud">
+                        {% for tag in popular_tags|slice:":5" %}
+                            <a href="{% url 'posts-by-tag' tag.slug %}" 
+                               class="tag tag-size-{{ forloop.counter }}">
+                                {{ tag.name }}
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-tagsinput/0.8.0/bootstrap-tagsinput.min.js"></script>
+    
+    <script>
+        // Initialize Bootstrap Tags Input
+        $(document).ready(function() {
+            $('.tag-input').tagsinput({
+                confirmKeys: [13, 44], // Enter and comma
+                trimValue: true,
+                maxTags: 10,
+                maxChars: 50
+            });
+            
+            // Auto-show advanced search if it has values
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('tags') || urlParams.has('sort_by')) {
+                $('#advancedSearch').collapse('show');
+            }
+            
+            // Set checkboxes state from URL parameters
+            const searchInParams = urlParams.getAll('search_in');
+            searchInParams.forEach(value => {
+                $(`input[name="search_in"][value="${value}"]`).prop('checked', true);
+            });
+            
+            // Set select value
+            const sortBy = urlParams.get('sort_by');
+            if (sortBy) {
+                $('select[name="sort_by"]').val(sortBy);
+            }
+            
+            // Highlight search terms
+            function highlightText(element, searchTerm) {
+                if (!searchTerm) return;
+                
+                const regex = new RegExp(`(${searchTerm})`, 'gi');
+                $(element).html((i, html) => {
+                    return html.replace(regex, '<span class="search-highlight">$1</span>');
+                });
+            }
+            
+            // Apply highlighting to search results
+            const searchTerm = "{{ request.GET.q }}";
+            if (searchTerm && searchTerm.trim()) {
+                $('.post-title, .post-content-preview').each(function() {
+                    highlightText(this, searchTerm);
+                });
+            }
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
 </body>
 </html>
