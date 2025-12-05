@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from .models import Profile 
 from .models import Post, Comment
 from django.utils.text import slugify
-from taggit.forms import TagWidget
+from taggit.forms import TagWidget()
 class CustomUserCreationForm(UserCreationForm):
     """Extend default form to include email."""
     email = forms.EmailField(required=True, help_text="Required. Enter a valid email address.")
