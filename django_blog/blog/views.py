@@ -16,6 +16,9 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
 from django.views.generic.edit import FormMixin
 from django.urls import reverse_lazy
+from django.db.models import Count
+from taggit.models import Tag
+from .forms import SearchForm
 from .models import Post, Comment
 from django.db.models import Q
 from django.contrib.postgres.search import (
@@ -99,14 +102,179 @@ class PostListView(ListView):
         ).order_by('-num_posts')[:10]
         
         return context# optional
+class PostSearchView(ListView):
+    model = Post
+    template_name = 'blog/post_search.html'
+    context_object_name = 'posts'
+    paginate_by = 10
+    
+    def get_queryset(self):
+        form = SearchForm(self.request.GET)
+        if not form.is_valid():
+            return Post.objects.none()
+        
+        q = form.cleaned_data.get('q', '')
+        tags = form.cleaned_data.get('tags', '')
+        search_in = form.cleaned_data.get('search_in', [])
+        sort_by = form.cleaned_data.get('sort_by', 'relevance')
+        
+        queryset = Post.objects.all().prefetch_related('tags', 'author')
+        
+        # Build search query - THIS IS WHERE THE MISSING CODE GOES
+        if q:
+            queries = []
+            
+            if 'title' in search_in:
+                queries.append(Q(title__icontains=q))  # title__icontains
+            
+            if 'content' in search_in:
+                queries.append(Q(content__icontains=q))  # content__icontains
+            
+            if 'author' in search_in:
+                queries.append(Q(author__username__icontains=q))
+            
+            if 'tags' in search_in:
+                queries.append(Q(tags__name__icontains=q))  # tags__name__icontains
+            
+            if queries:
+                # Start with an empty Q object
+                combined_query = queries.pop()
+                for query in queries:
+                    combined_query |= query
+                queryset = queryset.filter(combined_query).distinct()
+        
+        # Filter by tags
+        if tags:
+            tag_list = [tag.strip() for tag in tags.split(',') if tag.strip()]
+            if tag_list:
+                queryset = queryset.filter(tags__name__in=tag_list).distinct()
+        
+        # Apply sorting
+        if sort_by == 'newest':
+            queryset = queryset.order_by('-created_at')
+        elif sort_by == 'oldest':
+            queryset = queryset.order_by('created_at')
+        elif sort_by == 'relevance' and q:
+            # Simple relevance scoring
+            from django.db.models import Case, When, IntegerField
+            queryset = queryset.annotate(
+                relevance_score=(
+                    Case(
+                        When(title__icontains=q, then=3),
+                        When(content__icontains=q, then=1),
+                        default=0,
+                        output_field=IntegerField()
+                    )
+                )
+            ).order_by('-relevance_score', '-created_at')
+        else:
+            queryset = queryset.order_by('-created_at')
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['search_form'] = SearchForm(self.request.GET)
+        context['query'] = self.request.GET.get('q', '')
+        context['result_count'] = context['posts'].count()
+        
+        # Get search suggestions
+        if context['query']:
+            context['suggestions'] = self.get_search_suggestions(context['query'])
+        
+        # Get popular tags
+        context['popular_tags'] = Tag.objects.annotate(
+            num_posts=Count('taggit_taggeditem_items')
+        ).order_by('-num_posts')[:15]
+        
+        return context
+    
+    def get_search_suggestions(self, query):
+        """Return search suggestions based on query"""
+        suggestions = []
+        
+        # Suggest tags
+        tag_suggestions = Tag.objects.filter(
+            name__icontains=query
+        ).annotate(
+            num_posts=Count('taggit_taggeditem_items')
+        ).order_by('-num_posts')[:5]
+        
+        suggestions.extend([
+            {
+                'type': 'tag',
+                'name': tag.name,
+                'url': reverse('posts-by-tag', kwargs={'tag_slug': tag.slug}),
+                'count': tag.num_posts
+            }
+            for tag in tag_suggestions
+        ])
+       
+        return suggestions
 
+class PostsByTagView(ListView):
+    model = Post
+    template_name = 'blog/posts_by_tag.html'
+    context_object_name = 'posts'
+    paginate_by = 10
+    
+    def get_queryset(self):
+        self.tag = get_object_or_404(Tag, slug=self.kwargs['tag_slug'])
+        return Post.objects.filter(tags__in=[self.tag]).order_by('-created_at')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['tag'] = self.tag
+        
+        # Get related tags
+        post_ids = context['posts'].values_list('id', flat=True)
+        related_tags = Tag.objects.filter(
+            taggit_taggeditem_items__object_id__in=post_ids
+        ).exclude(
+            id=self.tag.id
+        ).annotate(
+            num_posts=Count('taggit_taggeditem_items')
+        ).order_by('-num_posts')[:10]
+        
+        context['related_tags'] = related_tags
+        return context
+
+# Tag Cloud View
+class TagCloudView(ListView):
+    model = Tag
+    template_name = 'blog/tag_cloud.html'
+    context_object_name = 'tags'
+    
+    def get_queryset(self):
+        return Tag.objects.annotate(
+            num_posts=Count('taggit_taggeditem_items')
+        ).order_by('-num_posts')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Calculate tag cloud weights
+        tags = context['tags']
+        if tags:
+            max_count = max(tag.num_posts for tag in tags)
+            min_count = min(tag.num_posts for tag in tags)
+            
+            for tag in tags:
+                # Normalize count to 1-5 scale for CSS classes
+                if max_count > min_count:
+                    normalized = ((tag.num_posts - min_count) / (max_count - min_count)) * 4 + 1
+                    tag.weight = int(normalized)
+                else:
+                    tag.weight = 3
+        
+        return context
 class PostDetailView(DetailView):
     model = Post
     template_name = "blog/post_detail.html"
     context_object_name = "post"
     form_class = CommentForm
     
-     def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         post = self.get_object()
         
