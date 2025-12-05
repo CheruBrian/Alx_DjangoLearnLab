@@ -10,6 +10,14 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.urls import reverse_lazy
 from .models import Post
 from .forms import PostForm
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.decorators import login_required
+from django.views.generic.edit import FormMixin
+from django.urls import reverse_lazy
+from .models import Post, Comment
+from .forms import PostForm, CommentForm, CommentUpdateForm
 
 def home(request):
     return render(request, "blog/home.html")
@@ -70,6 +78,49 @@ class PostDetailView(DetailView):
     model = Post
     template_name = "blog/post_detail.html"
     context_object_name = "post"
+    form_class = CommentForm
+    
+     def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        post = self.get_object()
+        
+        # Get all active comments for this post
+        comments = post.comments.filter(is_active=True).select_related('author')
+        
+        # Add comment form and comments to context
+        context['comments'] = comments
+        context['comment_form'] = self.get_form()
+        context['comment_count'] = comments.count()
+        
+        # Check if user can comment
+        context['can_comment'] = self.request.user.is_authenticated
+        
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            messages.error(request, 'You must be logged in to comment.')
+            return redirect('login')
+        
+        self.object = self.get_object()
+        form = self.get_form()
+        
+        if form.is_valid():
+            return self.form_valid(form)
+        else:
+            return self.form_invalid(form)
+    
+    def form_valid(self, form):
+        comment = form.save(commit=False)
+        comment.post = self.object
+        comment.author = self.request.user
+        comment.save()
+        
+        messages.success(self.request, 'Your comment has been posted!')
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        return reverse_lazy('post-detail', kwargs={'pk': self.object.pk})
 
 class PostCreateView(LoginRequiredMixin, CreateView):
     model = Post
@@ -98,3 +149,83 @@ class PostDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     def test_func(self):
         post = self.get_object()
         return self.request.user == post.author
+    
+class CommentCreateView(LoginRequiredMixin, CreateView):
+    """Alternative view for creating comments via AJAX or separate page"""
+    model = Comment
+    form_class = CommentForm
+    template_name = 'blog/comment_form.html'
+    
+    def form_valid(self, form):
+        post = get_object_or_404(Post, pk=self.kwargs['post_pk'])
+        comment = form.save(commit=False)
+        comment.post = post
+        comment.author = self.request.user
+        comment.save()
+        
+        messages.success(self.request, 'Comment posted successfully!')
+        return redirect('post-detail', pk=post.pk)
+
+class CommentUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    model = Comment
+    form_class = CommentUpdateForm
+    template_name = 'blog/comment_form.html'
+    
+    def test_func(self):
+        comment = self.get_object()
+        return comment.can_edit(self.request.user)
+    
+    def handle_no_permission(self):
+        messages.error(self.request, "You don't have permission to edit this comment.")
+        return redirect('post-detail', pk=self.get_object().post.pk)
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'Comment updated successfully!')
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        return reverse_lazy('post-detail', kwargs={'pk': self.object.post.pk})
+
+class CommentDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    model = Comment
+    template_name = 'blog/comment_confirm_delete.html'
+    
+    def test_func(self):
+        comment = self.get_object()
+        return comment.can_delete(self.request.user)
+    
+    def handle_no_permission(self):
+        messages.error(self.request, "You don't have permission to delete this comment.")
+        return redirect('post-detail', pk=self.get_object().post.pk)
+    
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, 'Comment deleted successfully!')
+        return super().delete(request, *args, **kwargs)
+    
+    def get_success_url(self):
+        return reverse_lazy('post-detail', kwargs={'pk': self.object.post.pk})
+
+@login_required
+def comment_reply(request, pk):
+    """View for replying to a comment"""
+    parent_comment = get_object_or_404(Comment, pk=pk)
+    post = parent_comment.post
+    
+    if request.method == 'POST':
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.post = post
+            comment.author = request.user
+            comment.parent = parent_comment  # If you add parent field for nested comments
+            comment.save()
+            messages.success(request, 'Reply posted successfully!')
+            return redirect('post-detail', pk=post.pk)
+    else:
+        form = CommentForm()
+    
+    return render(request, 'blog/comment_reply.html', {
+        'form': form,
+        'parent_comment': parent_comment,
+        'post': post
+    })
