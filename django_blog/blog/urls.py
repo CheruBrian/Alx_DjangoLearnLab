@@ -3,8 +3,9 @@ from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views (
     PostListView, PostDetailView, PostCreateView, PostUpdateView, PostDeleteView,
-    CommentCreateView, CommentUpdateView, CommentDeleteView, comment_reply
+    CommentCreateView, CommentUpdateView, CommentDeleteView, comment_reply, PostSearchView, PostsByTagView, TagCloudView, PostAdvancedSearchView
 )
+from .api import tag_suggestions_api
 
 urlpatterns = [
     path("", views.home, name="home"),
@@ -48,4 +49,13 @@ urlpatterns = [
     path('comments/<int:pk>/reply/', 
          comment_reply, 
          name='comment-reply'),
+    
+     # Tag and Search URLs
+    path('search/', PostSearchView.as_view(), name='post-search'),
+    path('search/advanced/', PostAdvancedSearchView.as_view(), name='post-search-advanced'),
+    path('tags/', TagCloudView.as_view(), name='tag-cloud'),
+    path('tags/<slug:tag_slug>/', PostByTagListView.as_view(), name='posts-by-tag'),
+    
+    # API URLs
+    path('api/tag-suggestions/', tag_suggestions_api, name='api-tag-suggestions'),
 ]
