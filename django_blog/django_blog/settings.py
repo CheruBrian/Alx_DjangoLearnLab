@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'taggit',
     'blog',
 ]
 
@@ -138,3 +139,8 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Taggit configuration
+TAGGIT_CASE_INSENSITIVE = True
+TAGGIT_TAGS_FROM_STRING = 'taggit.utils.parse_tags'
+TAGGIT_STRING_FROM_TAGS = 'taggit.utils.join_tags'
