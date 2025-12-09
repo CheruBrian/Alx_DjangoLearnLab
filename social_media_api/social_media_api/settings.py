@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'accounts',
+    'posts',
 ]
 
 REST_FRAMEWORK = {
@@ -49,6 +50,15 @@ REST_FRAMEWORK = {
   "DEFAULT_PERMISSION_CLASSES": [
     "rest_framework.permissions.IsAuthenticatedOrReadOnly",
   ],
+   "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 10,
+
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.TokenAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticatedOrReadOnly",
+    ],
 }
 
 
@@ -82,6 +92,9 @@ TEMPLATES = [
 WSGI_APPLICATION = 'social_media_api.wsgi.application'
 
 AUTH_USER_MODEL = "accounts.CustomUser"
+
+search_fields = ["title", "content"]
+
 
 
 
