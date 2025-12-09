@@ -37,7 +37,20 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'accounts',
 ]
+
+REST_FRAMEWORK = {
+  "DEFAULT_AUTHENTICATION_CLASSES": [
+    "rest_framework.authentication.TokenAuthentication",
+    "rest_framework.authentication.SessionAuthentication",
+  ],
+  "DEFAULT_PERMISSION_CLASSES": [
+    "rest_framework.permissions.IsAuthenticatedOrReadOnly",
+  ],
+}
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -67,6 +80,9 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'social_media_api.wsgi.application'
+
+AUTH_USER_MODEL = "accounts.CustomUser"
+
 
 
 # Database
