@@ -11,5 +11,5 @@ urlpatterns = router.urls
 urlpatterns = [
     path('feed/', FeedView.as_view(), name='feed'),
     path('<int:pk>/like/', LikePostAPIView.as_view(), name='like-post'),
-    path('<int:pk>/unlike', UnlikePostAPIView.as_view(), name='unlike-post'),
+    path('<int:pk>/unlike/', UnlikePostAPIView.as_view(), name='unlike-post'),
 ]
